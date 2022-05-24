@@ -714,3 +714,4 @@ jobs:
         workflow: Bookings-CD-Base
         token: ${{ secrets.PAT }}
         inputs: '{ "environment": "${{ env.trigger }}" }'
+
