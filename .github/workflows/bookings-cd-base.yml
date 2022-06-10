@@ -261,7 +261,7 @@ jobs:
 
     #TODO [CD]: This action is used to deploy the bookings application onto Azure WebApp. Remove the below if condition to enable the action
     - name: Azure WebApp 
-      if: ${{ false }}
+      #if: ${{ false }}
       id: webAppDeploy
       uses: Azure/webapps-deploy@v2
       with:
@@ -270,7 +270,7 @@ jobs:
 
     #TODO [CD]: This action is used to update the deployment status of release if the release is successful. Replace the ${{ false }} with success() to enable the below action
     - name: Update deployment status ${{ env.pipeline_env }} (success)
-      if: ${{ false }} #success()
+      if: success()
       uses: chrnorm/deployment-status@releases/v1
       with:
         token: "${{ github.token }}"
@@ -280,7 +280,7 @@ jobs:
 
     #TODO [CD]: This action is used to update the deployment status of release if the release is failure. Replace the ${{ false }} with failure() to enable the below action
     - name: Update deployment status ${{ env.pipeline_env }} (failure)
-      if: ${{ false }} #failure()
+      if: failure()
       uses: chrnorm/deployment-status@releases/v1
       with:
         token: "${{ github.token }}"
@@ -708,7 +708,7 @@ jobs:
     # This action is responsible to re-running the same CD pipeline using workflow dispatch in the next environment
     #TODO [CD]: Remove the below if condition to enable the action
     - name: Trigger - Release to ${{ env.trigger }}
-      if: ${{ false }}
+      #if: ${{ false }}
       uses: benc-uk/workflow-dispatch@v1
       with:
         workflow: Bookings-CD-Base
