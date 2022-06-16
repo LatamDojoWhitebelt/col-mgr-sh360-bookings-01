@@ -222,32 +222,32 @@ jobs:
     #to query AppInsights Availability and Latency of PRD environment and ensuring the environment is running as expected.
     #Uncomment the below 3 actions to enable the steps to get API Key and store is as a secret.
 
-    #- name: Generate AppInsights API Key # Generating AppInsights API Key using azure cli commands
-    #  uses: azure/CLI@1.0.4
-    #  if: env.pipeline_env == 'prd'
-    #  id: appinsights_key
-    #  continue-on-error: true
-    #  with:
-    #    inlineScript: |
-    #      az config set extension.use_dynamic_install=yes_without_prompt
-    #      output=$(az monitor app-insights api-key create --api-key mgr-slo --read-properties ReadTelemetry -g '${{ env.cus_prefix }}-${{ env.resourcegroup }}-${{ env.team_suffix }}' --app '${{ env.cus_prefix }}-${{ env.appinsights }}-${{ env.team_suffix }}' | jq .apiKey | tr -d '"')
-    #      echo ::set-output name=key::$output
-#
-    #- name: Create SLO_API_KEY Secret
-    #  uses: gliech/create-github-secret-action@v1
-    #  if: env.pipeline_env == 'prd' && steps.appinsights_key.outputs.key != ''
-    #  with:
-    #    name: SLO_API_KEY
-    #    value: ${{ steps.appinsights_key.outputs.key }}
-    #    pa_token: ${{ secrets.PAT }} 
-#
-    #- name: Create SLO_API_ID Secret
-    #  uses: gliech/create-github-secret-action@v1
-    #  if: env.pipeline_env == 'prd' && steps.appinsights_key.outputs.key != ''
-    #  with:
-    #    name: SLO_APP_ID
-    #    value: ${{ steps.armAppInsightsOutput.outputs.appInsightsAppId }}
-    #    pa_token: ${{ secrets.PAT }} 
+    - name: Generate AppInsights API Key # Generating AppInsights API Key using azure cli commands
+     uses: azure/CLI@1.0.4
+     if: env.pipeline_env == 'prd'
+     id: appinsights_key
+     continue-on-error: true
+     with:
+       inlineScript: |
+         az config set extension.use_dynamic_install=yes_without_prompt
+         output=$(az monitor app-insights api-key create --api-key mgr-slo --read-properties ReadTelemetry -g '${{ env.cus_prefix }}-${{ env.resourcegroup }}-${{ env.team_suffix }}' --app '${{ env.cus_prefix }}-${{ env.appinsights }}-${{ env.team_suffix }}' | jq .apiKey | tr -d '"')
+         echo ::set-output name=key::$output
+
+    - name: Create SLO_API_KEY Secret
+     uses: gliech/create-github-secret-action@v1
+     if: env.pipeline_env == 'prd' && steps.appinsights_key.outputs.key != ''
+     with:
+       name: SLO_API_KEY
+       value: ${{ steps.appinsights_key.outputs.key }}
+       pa_token: ${{ secrets.PAT }} 
+
+    - name: Create SLO_API_ID Secret
+     uses: gliech/create-github-secret-action@v1
+     if: env.pipeline_env == 'prd' && steps.appinsights_key.outputs.key != ''
+     with:
+       name: SLO_APP_ID
+       value: ${{ steps.armAppInsightsOutput.outputs.appInsightsAppId }}
+       pa_token: ${{ secrets.PAT }} 
 
     - name: Add app settings # Add App Settings to Azure App Service - ARM Template
       uses: Azure/arm-deploy@main
@@ -645,65 +645,65 @@ jobs:
     #TODO [CO]: Uncomment the below block to enable the evaluation of latency,availability and HTTPStatusCodes of PRD application.
 
     ## This action is used to get the latency of the PRD bookings application using App Insights API
-    #- name: Get Latency
-    #  uses: fjogeleit/http-request-action@master
-    #  if: env.trigger == 'prd'
-    #  id: slo
-    #  with:
-    #    url: https://api.applicationinsights.io/v1/apps/${{ secrets.SLO_APP_ID }}${{ env.slo_query }}
-    #    method: 'GET'
-    #    customHeaders: '{"x-api-key":"${{ secrets.SLO_API_KEY }}"}'
+    - name: Get Latency
+     uses: fjogeleit/http-request-action@master
+     if: env.trigger == 'prd'
+     id: slo
+     with:
+       url: https://api.applicationinsights.io/v1/apps/${{ secrets.SLO_APP_ID }}${{ env.slo_query }}
+       method: 'GET'
+       customHeaders: '{"x-api-key":"${{ secrets.SLO_API_KEY }}"}'
 #
     ## This action is used to evaluate the latency of the PRD bookings application. If it is less than the threshold, the pipeline proceeds to PRD or else it stops release to PRD.
-    #- name: Check Latency
-    #  shell: bash
-    #  if: env.trigger == 'prd'
-    #  run: |
-    #    slo=$(echo '${{ steps.slo.outputs.response }}' | jq .tables[].rows[0][1])
-    #    echo $slo
-    #    if (( $(echo "$slo ${{ env.slo_threshold }}" | awk '{print ($1 > $2)}') ));
-    #    then
-    #      exit 1
-    #    fi
+    - name: Check Latency
+     shell: bash
+     if: env.trigger == 'prd'
+     run: |
+       slo=$(echo '${{ steps.slo.outputs.response }}' | jq .tables[].rows[0][1])
+       echo $slo
+       if (( $(echo "$slo ${{ env.slo_threshold }}" | awk '{print ($1 > $2)}') ));
+       then
+         exit 1
+       fi
 #
     ## This action is used to get the availability of the PRD bookings application using App Insights API
-    #- name: Get Availability
-    #  uses: fjogeleit/http-request-action@master
-    #  if: env.trigger == 'prd'
-    #  id: availability
-    #  with:
-    #    url: https://api.applicationinsights.io/v1/apps/${{ secrets.SLO_APP_ID }}${{ env.latency_query }}
-    #    method: 'GET'
-    #    customHeaders: '{"x-api-key":"${{ secrets.SLO_API_KEY }}"}'
+    - name: Get Availability
+     uses: fjogeleit/http-request-action@master
+     if: env.trigger == 'prd'
+     id: availability
+     with:
+       url: https://api.applicationinsights.io/v1/apps/${{ secrets.SLO_APP_ID }}${{ env.latency_query }}
+       method: 'GET'
+       customHeaders: '{"x-api-key":"${{ secrets.SLO_API_KEY }}"}'
 #
     ## This action is used to evaluate the availability of the PRD bookings application. If it is equal to 1 i.e. it is available, the pipeline proceeds to PRD or else if it is equal to 0 it stops release to PRD.
-    #- name: Check Availability
-    #  shell: bash
-    #  if: env.trigger == 'prd'
-    #  run: |
-    #    latency=$(echo '${{ steps.availability.outputs.response }}' | jq .tables[].rows[0][0] | tr -d '"')
-    #    echo $latency
-    #    if [ $latency -eq 0 ];
-    #    then
-    #      exit 1
-    #    fi
+    - name: Check Availability
+     shell: bash
+     if: env.trigger == 'prd'
+     run: |
+       latency=$(echo '${{ steps.availability.outputs.response }}' | jq .tables[].rows[0][0] | tr -d '"')
+       echo $latency
+       if [ $latency -eq 0 ];
+       then
+         exit 1
+       fi
 
     ## This action is used to evaluate the App Service HTTP Logs from log analytics workspace of the PRD bookings application. 
     ## If no logs with status code 500 are returned, the pipeline proceeds to PRD or else if it returns atleast one status 500 error, it stops release to PRD.
-    #- name: Log Analytics - Check App Service Logs # Create Resource Group using azure cli commands
-    #  uses: azure/CLI@v1
-    #  if: env.trigger == 'prd'
-    #  with:
-    #    inlineScript: |
-    #      az config set extension.use_dynamic_install=yes_without_prompt
-    #      workspaceId=$(az monitor log-analytics workspace show --resource-group "${{ env.cus_prefix }}-${{ env.logAnalyticsWorkspaceResourceGroup }}-${{ env.team_suffix }}" --workspace-name "${{ env.cus_prefix }}-${{ env.logAnalyticsWorkspaceName }}-${{ env.team_suffix }}" | jq .customerId | tr -d '"')
-    #      logs=$(az monitor log-analytics query -w $workspaceId --analytics-query "AppServiceHTTPLogs | where TimeGenerated > ago(24h) and ScStatus ==500" | jq .[].CIp)
-    #      if [ -z "$logs" ]; then 
-    #        echo "PRD App Service is up and running"
-    #      else
-    #        echo "PRD App Service was down in last 24 hrs"
-    #        exit 1
-    #      fi
+    - name: Log Analytics - Check App Service Logs # Create Resource Group using azure cli commands
+     uses: azure/CLI@v1
+     if: env.trigger == 'prd'
+     with:
+       inlineScript: |
+         az config set extension.use_dynamic_install=yes_without_prompt
+         workspaceId=$(az monitor log-analytics workspace show --resource-group "${{ env.cus_prefix }}-${{ env.logAnalyticsWorkspaceResourceGroup }}-${{ env.team_suffix }}" --workspace-name "${{ env.cus_prefix }}-${{ env.logAnalyticsWorkspaceName }}-${{ env.team_suffix }}" | jq .customerId | tr -d '"')
+         logs=$(az monitor log-analytics query -w $workspaceId --analytics-query "AppServiceHTTPLogs | where TimeGenerated > ago(24h) and ScStatus ==500" | jq .[].CIp)
+         if [ -z "$logs" ]; then 
+           echo "PRD App Service is up and running"
+         else
+           echo "PRD App Service was down in last 24 hrs"
+           exit 1
+         fi
 
     # This action is responsible to re-running the same CD pipeline using workflow dispatch in the next environment
     #TODO [CD]: Remove the below if condition to enable the action
